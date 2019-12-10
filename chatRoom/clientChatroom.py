@@ -22,6 +22,8 @@ def send_message():
                 isChosen = True
             elif msg == 'finish':
                 msg = '#finish'
+            elif msg == 'exit':
+                msg = '#exit'
             else:
                 msg = username + "->" + msg
             client_socket.send(bytes(msg, 'utf-8'))
@@ -59,11 +61,14 @@ while True:
             elif message == '#busy':
                 print('Username you chose was busy')
                 isChosen = False
-            elif message == '#disconnect':
+            elif message == '#disconnected':
                 print('Username you chose was disconnected')
                 isChosen = False
             elif message == '#exist':
                 print('Username does not exist')
+                isChosen = False
+            elif message == '#you':
+                print('You cannot chat with yourself')
                 isChosen = False
             elif message[:7] == '#finish':
                 print('finish')
