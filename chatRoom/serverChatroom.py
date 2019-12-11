@@ -42,8 +42,12 @@ def print_chats():
         for ch in chats_list:
             print(ch)
 
-
+db.add_query(cursor, 'INSERT INTO chats(sender,receiver,message,time) VALUES(?,?,?,?)',[('sarah','sarah8','hello',datetime.datetime.now())])
 cursor.execute("update users set busy=0, online=0, chatTo=''")
+cursor.execute("update users set online=1, busy=1, chatTo='sarahhh' where username='sarah3'")
+cursor.execute("update users set online=1, busy=1, chatTo='sarah3' where username='sarahhh'")
+cursor.execute("update users set online=1 where username='sarah8'")
+cursor.execute("update users set online=1 where username='sarah2'")
 conn.commit()
 clients = {}
 usernames = []
@@ -67,23 +71,32 @@ while True:
                 for x in search_query:
                     usernames.append(x[0])
                 if username in usernames:
-                    client_socket.send(bytes("Welcome back {}!\n".format(username), 'utf-8'))
+                    client_socket.send(bytes("Welcome back {}!".format(username), 'utf-8'))
                     db.update(cursor, 'users', 'online=1', 'WHERE username="{}"'.format(username))
                 else:
                     query = "INSERT INTO users(username, busy, online, chatTo) VALUES(?, ?, ?, ?)"
                     db_query = db.add_query(cursor, query, [(username, False, True, None)])
                     if db_query:
                         conn.commit()
-                    client_socket.send(bytes("welcome to this chatroom!\n", 'utf-8'))
-                client_socket.send(bytes("If you want to exit enter exit\n",'utf-8'))
+                    client_socket.send(bytes("welcome to this chatroom {}!".format(username), 'utf-8'))
+                #client_socket.send(bytes("If you want to exit enter exit\n",'utf-8'))
                 socket_list.append(client_socket)
                 clients[client_socket] = username
-                print("Connection Established from {}".format(address))
-                client_socket.send(bytes("Who do you want to chat to?", 'utf-8'))
-                for client_sockets in clients:
+                print("Connection Established from {}. Address is {}".format(username, address))
+                #client_socket.send(bytes("Who do you want to chat to?", 'utf-8'))
+                users_online = db.search(cursor, 'username', 'users', 'WHERE online=1 and busy=0')
+                onlines = ''
+                '''for us_on in users_online:
+                    if us_on[0] != username:
+                        onlines += (us_on[0] + '*' + str(us_on[1]) + '*' + str(us_on[2]) + '#')'''
+                for us_on in users_online:
+                    if us_on[0] != username:
+                        onlines += (us_on[0] + '*')
+                client_socket.send(bytes(onlines[:-1], 'utf-8'))
+                '''for client_sockets in clients:
                     if client_sockets != client_socket:
                         client_sockets.send(
-                            bytes("{} joined Group with address {}".format(username, address), 'utf-8'))
+                            bytes(onlines, 'utf-8'))'''
 
         else:
             message = s.recv(1024).decode('utf-8')
@@ -148,22 +161,28 @@ while True:
                                                          "WHERE username = '{}'".format(sender_user))
                                 if update_query:
                                     conn.commit()
-                                s.send(bytes("#OK", 'utf-8'))
-                                for client in clients:
-                                    if clients[client] == receiver_user:
-                                        client_socket = client
-                                        break
-                                client_socket.send(bytes("#OK", 'utf-8'))
+                                # s.send(bytes("#OK", 'utf-8'))
+                                # for client in clients:
+                                #     if clients[client] == receiver_user:
+                                #         client_socket = client
+                                #         break
+                                # client_socket.send(bytes("#OK", 'utf-8'))
                                 print('A chat is established between {} and {}'.format(sender_user,
                                                                                        receiver_user))
                                 chat_messages = db.search(cursor,
                                                      'sender, receiver, message, time',
                                                      'chats',
                                                      'WHERE sender="{}" AND receiver="{}"'.format(sender_user, receiver_user))
-                                for mss in chat_messages:
-                                    previous_chat = "{}**  {}->{}: {}".format(mss[3], mss[0], mss[1], mss[2])
-                                    s.send(bytes(previous_chat,'utf-8'))
-                                    client_socket.send(bytes(previous_chat,'utf-8'))
+                                #print(chat_messages)
+                                previous_chats = ''
+                                if len(chat_messages)>0:
+                                    for mss in chat_messages:
+                                        previous_chat = "{}**  {}->{}: {}".format(mss[3], mss[0], mss[1], mss[2])
+                                        previous_chats += (previous_chat + '##')
+                                if previous_chats:
+                                    previous_chats = previous_chats[:-2]
+                                s.send(bytes(previous_chats,'utf-8'))
+                                client_socket.send(bytes(previous_chats,'utf-8'))
                         else:
                             s.send(bytes('#exist', 'utf-8'))
             else:
